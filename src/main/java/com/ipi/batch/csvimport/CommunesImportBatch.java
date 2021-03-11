@@ -46,12 +46,13 @@ public class CommunesImportBatch {
     private EntityManagerFactory entityManagerFactory;
 
     @Bean
-    public Job importCsvJob(Step stepHelloWorld, Step stepImportCSV, Step stepImportCSVWithJDBC) {
+    public Job importCsvJob(Step stepHelloWorld, Step stepImportCSV, Step stepImportCSVWithJDBC, Step stepGetMissingCoordinates) {
         return jobBuilderFactory.get("importCsvJob")
                 .incrementer(new RunIdIncrementer())
                 .flow(stepHelloWorld)
                 .next(stepImportCSV)
                 .next(stepImportCSVWithJDBC)
+                .next(stepGetMissingCoordinates)
                 .end()
                 .build();
     }
@@ -83,6 +84,16 @@ public class CommunesImportBatch {
     }
 
     @Bean
+    public Step stepGetMissingCoordinates() {
+        return stepBuilderFactory.get("getMissingCoordinates")
+                .<Commune, Commune>chunk(10)
+                .reader(communeMissingCoordinatesJpaItemReader())
+                .processor(communesMissingCoordinatesItemProcessor())
+                .writer(writerJPA())
+                .build();
+    }
+
+    @Bean
     public JpaItemWriter<Commune> writerJPA() {
         return new JpaItemWriterBuilder<Commune>()
                 .entityManagerFactory(entityManagerFactory)
@@ -90,7 +101,7 @@ public class CommunesImportBatch {
     }
 
     @Bean
-    public JdbcBatchItemWriter writerJDBC(DataSource dataSource) {
+    public JdbcBatchItemWriter<Commune> writerJDBC(DataSource dataSource) {
         return new JdbcBatchItemWriterBuilder<Commune>()
                 .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
                 .sql("INSERT INTO COMMUNE(code_insee, code_postal, latitude, longitude) VALUES (:codeInsee, :codePostal, :latitude, :longitude)" +
@@ -126,6 +137,11 @@ public class CommunesImportBatch {
                 .pageSize(10)
                 .queryString("from Commune c where c.latitude is null or c.longitude is null")
                 .build();
+    }
+
+    @Bean
+    public CommunesMissingCoordinatesItemProcessor communesMissingCoordinatesItemProcessor() {
+        return new CommunesMissingCoordinatesItemProcessor();
     }
 
 
