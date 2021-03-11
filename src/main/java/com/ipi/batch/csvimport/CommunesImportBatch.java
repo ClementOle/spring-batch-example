@@ -10,7 +10,10 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
@@ -25,6 +28,7 @@ import org.springframework.validation.BindException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 
 @Configuration
 @EnableBatchProcessing
@@ -40,6 +44,24 @@ public class CommunesImportBatch {
     private EntityManagerFactory entityManagerFactory;
 
     @Bean
+    public Job importCsvJob(Step stepHelloWorld, Step stepImportCSV, Step stepImportCSVWithJDBC) {
+        return jobBuilderFactory.get("importCsvJob")
+                .incrementer(new RunIdIncrementer())
+                .flow(stepHelloWorld)
+                .next(stepImportCSV)
+                .next(stepImportCSVWithJDBC)
+                .end()
+                .build();
+    }
+
+    @Bean
+    public Step stepHelloWorld() {
+        return stepBuilderFactory.get("stepHelloWorld")
+                .tasklet(helloWorldTasklet())
+                .build();
+    }
+
+    @Bean
     public Step stepImportCSV() {
         return stepBuilderFactory.get("importFile")
                 .<CommuneCSV, Commune>chunk(10)
@@ -48,11 +70,29 @@ public class CommunesImportBatch {
                 .writer(writerJPA())
                 .build();
     }
+    @Bean
+    public Step stepImportCSVWithJDBC() {
+        return stepBuilderFactory.get("importFileWithJDBC")
+                .<CommuneCSV, Commune>chunk(10)
+                .reader(communeCSVItemReader())
+                .processor(communeCSVToCommuneProcessor())
+                .writer(writerJDBC(null))
+                .build();
+    }
 
     @Bean
     public JpaItemWriter<Commune> writerJPA() {
         return new JpaItemWriterBuilder<Commune>()
                 .entityManagerFactory(entityManagerFactory)
+                .build();
+    }
+
+    @Bean
+    public JdbcBatchItemWriter writerJDBC(DataSource dataSource) {
+        return new JdbcBatchItemWriterBuilder<Commune>()
+                .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
+                .sql("INSERT INTO COMMUNE(code_insee, code_postal, latitude, longitude) VALUES (:codeInsee, :codePostal, :latitude, :longitude)")
+                .dataSource(dataSource)
                 .build();
     }
 
@@ -76,22 +116,7 @@ public class CommunesImportBatch {
     }
 
 
-    @Bean
-    public Job importCsvJob(Step stepHelloWorld, Step stepImportCSV) {
-        return jobBuilderFactory.get("importCsvJob")
-                .incrementer(new RunIdIncrementer())
-                .flow(stepHelloWorld)
-                .next(stepImportCSV)
-                .end()
-                .build();
-    }
 
-    @Bean
-    public Step stepHelloWorld() {
-        return stepBuilderFactory.get("stepHelloWorld")
-                .tasklet(helloWorldTasklet())
-                .build();
-    }
 
     @Bean
     public Tasklet helloWorldTasklet() {
