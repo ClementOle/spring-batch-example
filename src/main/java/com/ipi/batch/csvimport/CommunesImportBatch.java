@@ -40,6 +40,16 @@ public class CommunesImportBatch {
     private EntityManagerFactory entityManagerFactory;
 
     @Bean
+    public Step stepImportCSV() {
+        return stepBuilderFactory.get("importFile")
+                .<CommuneCSV, Commune>chunk(10)
+                .reader(communeCSVItemReader())
+                .processor(communeCSVToCommuneProcessor())
+                .writer(writerJPA())
+                .build();
+    }
+
+    @Bean
     public JpaItemWriter<Commune> writerJPA() {
         return new JpaItemWriterBuilder<Commune>()
                 .entityManagerFactory(entityManagerFactory)
@@ -67,10 +77,11 @@ public class CommunesImportBatch {
 
 
     @Bean
-    public Job importCsvJob(Step stepHelloWorld) {
+    public Job importCsvJob(Step stepHelloWorld, Step stepImportCSV) {
         return jobBuilderFactory.get("importCsvJob")
                 .incrementer(new RunIdIncrementer())
                 .flow(stepHelloWorld)
+                .next(stepImportCSV)
                 .end()
                 .build();
     }
