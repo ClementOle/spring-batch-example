@@ -13,8 +13,10 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
+import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
@@ -91,7 +93,8 @@ public class CommunesImportBatch {
     public JdbcBatchItemWriter writerJDBC(DataSource dataSource) {
         return new JdbcBatchItemWriterBuilder<Commune>()
                 .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-                .sql("INSERT INTO COMMUNE(code_insee, code_postal, latitude, longitude) VALUES (:codeInsee, :codePostal, :latitude, :longitude)")
+                .sql("INSERT INTO COMMUNE(code_insee, code_postal, latitude, longitude) VALUES (:codeInsee, :codePostal, :latitude, :longitude)" +
+                        "ON DUPLICATE KEY UPDATE nom = c.nom, code_postal=c.code_postal, latitude=c.latitude, longitude=c.longitude")
                 .dataSource(dataSource)
                 .build();
     }
@@ -115,7 +118,15 @@ public class CommunesImportBatch {
                 .build();
     }
 
-
+    @Bean
+    public JpaPagingItemReader<Commune> communeMissingCoordinatesJpaItemReader() {
+        return new JpaPagingItemReaderBuilder<Commune>()
+                .name("communeMissingCoordinatesJpaItemReader")
+                .entityManagerFactory(entityManagerFactory)
+                .pageSize(10)
+                .queryString("from Commune c where c.latitude is null or c.longitude is null")
+                .build();
+    }
 
 
     @Bean
