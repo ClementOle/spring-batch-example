@@ -25,8 +25,10 @@ public class CommuneCSVItemProcessor implements ItemProcessor<CommuneCSV, Commun
         commune.setNom(nomCommune);
         //Latitude/Longitude
         String[] coordonnees = item.getCoordonneesGps().split(",");
-        commune.setLatitude(Double.valueOf(coordonnees[0]));
-        commune.setLongitude(Double.valueOf(coordonnees[1]));
+        if(coordonnees != null && coordonnees.length >= 2) {
+            commune.setLatitude(Double.valueOf(coordonnees[0]));
+            commune.setLongitude(Double.valueOf(coordonnees[1]));
+        }
         return commune;
     }
 }
