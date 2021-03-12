@@ -5,7 +5,7 @@ import com.ipi.batch.dto.CommuneCSV;
 import com.ipi.batch.exception.CommuneCSVException;
 import com.ipi.batch.exception.NetworkException;
 import com.ipi.batch.listener.CommuneCSVItemListener;
-import com.ipi.batch.listener.CommunesMissingCoordinatesSkipListener;
+import com.ipi.batch.listener.CommunesCSVImportSkipListener;
 import com.ipi.batch.listener.communeCSVImportChunkListener;
 import com.ipi.batch.listener.CommuneCSVImportStepListener;
 import com.ipi.batch.model.Commune;
@@ -14,6 +14,7 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
@@ -78,14 +79,20 @@ public class CommunesImportBatch {
     }
 
     @Bean
-    public SkipListener<Commune, Commune> communesMissingCoordinatesSkipListener() {
-        return new CommunesMissingCoordinatesSkipListener();
+    public SkipListener<CommuneCSV, Commune> communesCommunesCSVImportSkipListener() {
+        return new CommunesCSVImportSkipListener();
     }
 
     @Bean
-    public ItemWriteListener<Commune> communeCSVItemListener() {
+    public ItemReadListener<CommuneCSV> communeCSVItemReadListener(){
         return new CommuneCSVItemListener();
     }
+
+    @Bean
+    public ItemWriteListener<Commune> communeCSVItemWriteListener(){
+        return new CommuneCSVItemListener();
+    }
+
 
     @Bean
     public Step stepImportCSV() {
@@ -95,12 +102,13 @@ public class CommunesImportBatch {
                     .processor(communeCSVToCommuneProcessor())
                     .writer(writerJPA())
                     .faultTolerant()
-                    .skipLimit(100)
+                    .skipPolicy(new AlwaysSkipItemSkipPolicy())
                     .skip(CommuneCSVException.class)
-                    .listener(communesMissingCoordinatesSkipListener())
+                    .listener(communesCommunesCSVImportSkipListener())
                     .listener(communeCSVImportStepListener())
                     .listener(communeCSVImportChunkListener())
-                    .listener(communeCSVItemListener())
+                    .listener(communeCSVItemReadListener())
+                    .listener(communeCSVItemWriteListener())
                     .listener(communeCSVToCommuneProcessor())
                     .build();
 

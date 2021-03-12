@@ -43,4 +43,3 @@ public class CommuneCSVItemListener implements ItemReadListener<CommuneCSV>, Ite
         logger.error("On Write Error CSV Import => " + exception.getMessage() + " " + items.toString());
     }
 }
-}

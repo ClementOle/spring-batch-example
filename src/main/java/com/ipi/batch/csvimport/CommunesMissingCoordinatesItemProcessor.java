@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class CommunesMissingCoordinatesItemProcessor implements ItemProcessor<Commune, Commune> {
 
-    Logger logger = LoggerFactory.getLogger(this.getClass())
+    Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
     public Commune process(Commune item) throws Exception {

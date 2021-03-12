@@ -68,4 +68,14 @@ public class Commune {
         this.longitude = longitude;
     }
 
+    @Override
+    public String toString() {
+        return "Commune{" +
+                "codeInsee='" + codeInsee + '\'' +
+                ", nom='" + nom + '\'' +
+                ", codePostal='" + codePostal + '\'' +
+                ", latitude=" + latitude +
+                ", longitude=" + longitude +
+                '}';
+    }
 }

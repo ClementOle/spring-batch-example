@@ -1,11 +1,12 @@
 package com.ipi.batch.listener;
 
+import com.ipi.batch.dto.CommuneCSV;
 import com.ipi.batch.model.Commune;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.SkipListener;
 
-public class CommunesMissingCoordinatesSkipListener implements SkipListener<Commune, Commune> {
+public class CommunesCSVImportSkipListener implements SkipListener<CommuneCSV, Commune> {
     Logger logger = LoggerFactory.getLogger(this.getClass());
     @Override
     public void onSkipInRead(Throwable t) {
@@ -18,7 +19,7 @@ public class CommunesMissingCoordinatesSkipListener implements SkipListener<Comm
     }
 
     @Override
-    public void onSkipInProcess(Commune item, Throwable t) {
+    public void onSkipInProcess(CommuneCSV item, Throwable t) {
         logger.warn("Skip in Process => " + item.toString() + ", " + t.getMessage());
     }
 }
