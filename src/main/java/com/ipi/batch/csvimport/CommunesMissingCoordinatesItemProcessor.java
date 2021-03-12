@@ -4,11 +4,19 @@ import com.ipi.batch.dto.CommuneCSV;
 import com.ipi.batch.exception.CommuneCSVException;
 import com.ipi.batch.model.Commune;
 import com.ipi.batch.utils.OpenStreetMapUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.annotation.AfterProcess;
+import org.springframework.batch.core.annotation.BeforeProcess;
+import org.springframework.batch.core.annotation.OnProcessError;
 import org.springframework.batch.item.ItemProcessor;
 
 import java.util.Map;
 
 public class CommunesMissingCoordinatesItemProcessor implements ItemProcessor<Commune, Commune> {
+
+    Logger logger = LoggerFactory.getLogger(this.getClass())
+
     @Override
     public Commune process(Commune item) throws Exception {
 
@@ -43,5 +51,20 @@ public class CommunesMissingCoordinatesItemProcessor implements ItemProcessor<Co
         if(item.getCoordonneesGps() != null && !item.getCoordonneesGps().matches("^[-+]?([1-8]?\\d(\\.\\d+)?|90(\\.0+)?),\\s*[-+]?(180(\\.0+)?|((1[0-7]\\d)|([1-9]?\\d))(\\.\\d+)?)$")){
             throw new CommuneCSVException("Le nom de la commune n'est pas composé uniquement de lettres, espaces et tirets");
         }
+    }
+
+    @BeforeProcess
+    public void beforeProcessor(CommuneCSV input) {
+        logger.info("Before process => " + input.toString());
+    }
+
+    @AfterProcess
+    public void afterProcess(CommuneCSV input, Commune output) {
+        logger.info("After process => " + input.toString() + " => " + output.toString());
+    }
+
+    @OnProcessError
+    public void onProcessError(CommuneCSV input, Exception ex) {
+        logger.error("Error process => " + input.toString() + " => " + ex.getMessage());
     }
 }
