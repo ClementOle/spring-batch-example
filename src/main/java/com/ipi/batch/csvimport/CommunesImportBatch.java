@@ -24,6 +24,7 @@ import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilde
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +68,7 @@ public class CommunesImportBatch {
                 .flow(stepHelloWorld)
                 .next(stepImportCSV)
                 .on("COMPLETED_WHTH_MISSING_COORDINATES").to(stepGetMissingCoordinates)
-                .next(stepImportCSVWithJDBC)
+                //.next(stepImportCSVWithJDBC)
                 .end()
                 .build();
     }
@@ -75,8 +76,8 @@ public class CommunesImportBatch {
     @Bean
     public Step stepHelloWorld() {
         return stepBuilderFactory.get("stepHelloWorld")
-                .tasklet(helloWorldTasklet())
-                .listener(helloWorldTasklet())
+                .tasklet(startTasklet())
+                .listener(startTasklet())
                 .build();
     }
 
@@ -116,10 +117,11 @@ public class CommunesImportBatch {
                     .faultTolerant()
                     .skipPolicy(new AlwaysSkipItemSkipPolicy())
                     .skip(CommuneCSVException.class)
+                    .skip(FlatFileParseException.class)
                     .listener(communesCommunesCSVImportSkipListener())
-                    .listener(communeCSVImportStepListener())
+                    /*.listener(communeCSVImportStepListener())
                     .listener(communeCSVImportChunkListener())
-                    .listener(communeCSVItemReadListener())
+                    .listener(communeCSVItemReadListener())*/
                     .listener(communeCSVItemWriteListener())
                     .listener(communeCSVToCommuneProcessor())
                     .build();
@@ -205,8 +207,8 @@ public class CommunesImportBatch {
 
 
     @Bean
-    public Tasklet helloWorldTasklet() {
-        return new HelloWorldTasklet();
+    public Tasklet startTasklet() {
+        return new StartTasklet();
     }
 
 

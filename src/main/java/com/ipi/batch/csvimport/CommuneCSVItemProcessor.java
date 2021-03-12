@@ -72,7 +72,7 @@ public class CommuneCSVItemProcessor implements ItemProcessor<CommuneCSV, Commun
     @AfterStep
     public ExitStatus afterStep(StepExecution stepExecution) {
         logger.info("After Step CSV Import");
-        logger.info(stepExecution.getJobExecution().getExecutionContext().getString("MSG"));
+        logger.info(stepExecution.getJobExecution().getExecutionContext().getString("MSG", ""));
         logger.info(stepExecution.getSummary());
         if(nbCommunesWithoutCoordinates > 0){
             return new ExitStatus("COMPLETED_WITH_MISSING_COORDINATES");
