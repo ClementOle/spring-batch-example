@@ -2,9 +2,13 @@ package com.ipi.batch.csvimport;
 
 
 import com.ipi.batch.dto.CommuneCSV;
+import com.ipi.batch.exception.CommuneCSVException;
+import com.ipi.batch.exception.NetworkException;
+import com.ipi.batch.listener.CommuneCSVImportStepListener;
 import com.ipi.batch.model.Commune;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -26,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.validation.BindException;
 
 import javax.persistence.EntityManager;
@@ -61,23 +66,34 @@ public class CommunesImportBatch {
     public Step stepHelloWorld() {
         return stepBuilderFactory.get("stepHelloWorld")
                 .tasklet(helloWorldTasklet())
+                .listener(helloWorldTasklet())
                 .build();
     }
 
     @Bean
+    public StepExecutionListener communeCSVImportTestListernet() {
+        return new CommuneCSVImportStepListener();
+    }
+
+    @Bean
     public Step stepImportCSV() {
-        return stepBuilderFactory.get("importFile")
-                .<CommuneCSV, Commune>chunk(10)
-                .reader(communeCSVItemReader())
-                .processor(communeCSVToCommuneProcessor())
-                .writer(writerJPA())
-                .build();
+            return stepBuilderFactory.get("importFile")
+                    .<CommuneCSV, Commune> chunk(10)
+                    .reader(communesCSVItemReader())
+                    .processor(communeCSVToCommuneProcessor())
+                    .writer(writerJPA())
+                    .faultTolerant()
+                    .skipLimit(100)
+                    .skip(CommuneCSVException.class)
+                    .listener(communeCSVImportTestListernet())
+                    .build();
+
     }
     @Bean
     public Step stepImportCSVWithJDBC() {
         return stepBuilderFactory.get("importFileWithJDBC")
                 .<CommuneCSV, Commune>chunk(10)
-                .reader(communeCSVItemReader())
+                .reader(communesCSVItemReader())
                 .processor(communeCSVToCommuneProcessor())
                 .writer(writerJDBC(null))
                 .build();
@@ -85,11 +101,18 @@ public class CommunesImportBatch {
 
     @Bean
     public Step stepGetMissingCoordinates() {
+        FixedBackOffPolicy policy = new FixedBackOffPolicy();
+        policy.setBackOffPeriod(2000);
         return stepBuilderFactory.get("getMissingCoordinates")
                 .<Commune, Commune>chunk(10)
                 .reader(communeMissingCoordinatesJpaItemReader())
                 .processor(communesMissingCoordinatesItemProcessor())
                 .writer(writerJPA())
+                .faultTolerant()
+                .retryLimit(5)
+                .retry(NetworkException.class)
+                .backOffPolicy(policy)
+
                 .build();
     }
 
@@ -116,7 +139,7 @@ public class CommunesImportBatch {
     }
 
     @Bean
-    public FlatFileItemReader<CommuneCSV> communeCSVItemReader() {
+    public FlatFileItemReader<CommuneCSV> communesCSVItemReader() {
         return new FlatFileItemReaderBuilder<CommuneCSV>()
                 .name("communesCSVItemReader")
                 .linesToSkip(1)
