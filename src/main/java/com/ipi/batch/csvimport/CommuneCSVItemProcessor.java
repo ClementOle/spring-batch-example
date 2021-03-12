@@ -6,7 +6,10 @@ import com.ipi.batch.model.Commune;
 import org.apache.commons.text.WordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.AfterProcess;
+import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeProcess;
 import org.springframework.batch.core.annotation.OnProcessError;
 import org.springframework.batch.item.ItemProcessor;
@@ -15,30 +18,35 @@ import org.springframework.batch.item.ItemProcessor;
 public class CommuneCSVItemProcessor implements ItemProcessor<CommuneCSV, Commune> {
     Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    private int nbCommunesWithoutCoordinates = 0;
+
     @Override
     public Commune process(CommuneCSV item) throws Exception {
         Commune commune = new Commune();
         validateCommuneCSV(item);
         commune.setCodeInsee(item.getCodeInsee());
         commune.setCodePostal(item.getCodePostal());
-        //Majuscule première lettre de chaque terme
+        commune.setNom(WordUtils.capitalizeFully(item.getNom()));
+
         String nomCommune = WordUtils.capitalizeFully(item.getNom());
-        //Proprification du nom
         nomCommune = nomCommune.replaceAll("^L ", "L'");
-        nomCommune = nomCommune.replaceAll(" L ", " L'");
+        nomCommune = nomCommune.replaceAll(" L ", "L'");
         nomCommune = nomCommune.replaceAll("^D ", "D'");
-        nomCommune = nomCommune.replaceAll(" D ", " D'");
-        nomCommune = nomCommune.replaceAll("^St ", "Saint ");
-        nomCommune = nomCommune.replaceAll(" St ", " Saint ");
-        nomCommune = nomCommune.replaceAll("^Ste ", "Sainte ");
-        nomCommune = nomCommune.replaceAll(" Sainte ", " Sainte ");
+        nomCommune = nomCommune.replaceAll(" D ", "D'");
+        nomCommune = nomCommune.replaceAll("^St ", "Saint'");
+        nomCommune = nomCommune.replaceAll(" St ", "Saint'");
+        nomCommune = nomCommune.replaceAll("^Ste ", "Sainte'");
+        nomCommune = nomCommune.replaceAll(" Ste ", "Sainte'");
         commune.setNom(nomCommune);
-        //Latitude/Longitude
+
+        // Latitude et Longitude
+
         String[] coordonnees = item.getCoordonneesGps().split(",");
-        if (coordonnees.length == 2) {
+        if(coordonnees.length == 2){
             commune.setLatitude(Double.valueOf(coordonnees[0]));
             commune.setLongitude(Double.valueOf(coordonnees[1]));
         }
+
         return commune;
     }
 
@@ -61,6 +69,17 @@ public class CommuneCSVItemProcessor implements ItemProcessor<CommuneCSV, Commun
         }
     }
 
+    @AfterStep
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        logger.info("After Step CSV Import");
+        logger.info(stepExecution.getJobExecution().getExecutionContext().getString("MSG"));
+        logger.info(stepExecution.getSummary());
+        if(nbCommunesWithoutCoordinates > 0){
+            return new ExitStatus("COMPLETED_WITH_MISSING_COORDINATES");
+        }
+        return ExitStatus.COMPLETED;
+    }
+
     @BeforeProcess
     public void beforeProcess(CommuneCSV input) {
         logger.info("Before Process => " + input.toString());
@@ -75,4 +94,5 @@ public class CommuneCSVItemProcessor implements ItemProcessor<CommuneCSV, Commun
     public void onProcessError(CommuneCSV input, Exception ex) {
         logger.error("Error Process => " + input.toString() + " => " + ex.getMessage());
     }
+
 }

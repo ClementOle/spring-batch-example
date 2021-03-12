@@ -27,6 +27,7 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -48,14 +49,25 @@ public class CommunesImportBatch {
     @Autowired
     private EntityManagerFactory entityManagerFactory;
 
+    @Value("${communesImportBatch.chunksize}")
+    private Integer chunksize;
+
+    public Integer getChunksize() {
+        return chunksize;
+    }
+
+    public void setChunksize(Integer chunksize) {
+        this.chunksize = chunksize;
+    }
+
     @Bean
     public Job importCsvJob(Step stepHelloWorld, Step stepImportCSV, Step stepImportCSVWithJDBC, Step stepGetMissingCoordinates) {
         return jobBuilderFactory.get("importCsvJob")
                 .incrementer(new RunIdIncrementer())
                 .flow(stepHelloWorld)
                 .next(stepImportCSV)
+                .on("COMPLETED_WHTH_MISSING_COORDINATES").to(stepGetMissingCoordinates)
                 .next(stepImportCSVWithJDBC)
-                .next(stepGetMissingCoordinates)
                 .end()
                 .build();
     }
@@ -97,7 +109,7 @@ public class CommunesImportBatch {
     @Bean
     public Step stepImportCSV() {
             return stepBuilderFactory.get("importFile")
-                    .<CommuneCSV, Commune> chunk(10)
+                    .<CommuneCSV, Commune> chunk(chunksize)
                     .reader(communesCSVItemReader())
                     .processor(communeCSVToCommuneProcessor())
                     .writer(writerJPA())
@@ -116,7 +128,7 @@ public class CommunesImportBatch {
     @Bean
     public Step stepImportCSVWithJDBC() {
         return stepBuilderFactory.get("importFileWithJDBC")
-                .<CommuneCSV, Commune>chunk(10)
+                .<CommuneCSV, Commune>chunk(chunksize)
                 .reader(communesCSVItemReader())
                 .processor(communeCSVToCommuneProcessor())
                 .writer(writerJDBC(null))
@@ -128,7 +140,7 @@ public class CommunesImportBatch {
         FixedBackOffPolicy policy = new FixedBackOffPolicy();
         policy.setBackOffPeriod(2000);
         return stepBuilderFactory.get("getMissingCoordinates")
-                .<Commune, Commune>chunk(10)
+                .<Commune, Commune>chunk(chunksize)
                 .reader(communeMissingCoordinatesJpaItemReader())
                 .processor(communesMissingCoordinatesItemProcessor())
                 .writer(writerJPA())
