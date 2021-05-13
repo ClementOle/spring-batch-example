@@ -1,6 +1,6 @@
-package com.ipi.batch.utils;
+package com.ipiecoles.batch.utils;
 
-import com.ipi.batch.exception.NetworkException;
+import com.ipiecoles.batch.exception.NetworkException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;

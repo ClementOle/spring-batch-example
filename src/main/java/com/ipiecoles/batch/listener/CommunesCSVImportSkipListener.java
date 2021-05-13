@@ -1,7 +1,7 @@
-package com.ipi.batch.listener;
+package com.ipiecoles.batch.listener;
 
-import com.ipi.batch.dto.CommuneCSV;
-import com.ipi.batch.model.Commune;
+import com.ipiecoles.batch.dto.CommuneCSV;
+import com.ipiecoles.batch.model.Commune;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.SkipListener;

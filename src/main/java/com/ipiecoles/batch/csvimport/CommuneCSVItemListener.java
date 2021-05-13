@@ -1,7 +1,7 @@
-package com.ipi.batch.listener;
+package com.ipiecoles.batch.csvImport;
 
-import com.ipi.batch.dto.CommuneCSV;
-import com.ipi.batch.model.Commune;
+import com.ipiecoles.batch.dto.CommuneCSV;
+import com.ipiecoles.batch.model.Commune;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.ItemReadListener;
@@ -9,10 +9,9 @@ import org.springframework.batch.core.ItemWriteListener;
 
 import java.util.List;
 
+
 public class CommuneCSVItemListener implements ItemReadListener<CommuneCSV>, ItemWriteListener<Commune> {
-
     Logger logger = LoggerFactory.getLogger(this.getClass());
-
     @Override
     public void beforeRead() {
         logger.info("Before Read CSV Import");
