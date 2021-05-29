@@ -116,9 +116,6 @@ public class CommunesImportBatch {
                 .skip(CommuneCSVException.class)
                 .skip(FlatFileParseException.class)
                 .listener(communesCSVImportSkipListener())
-//                .listener(communeCSVImportStepListener())
-//                .listener(communeCSVImportChunkListener())
-//                .listener(communeCSVItemReadListener())
                 .listener(communeCSVItemWriteListener())
                 .listener(communeCSVToCommuneProcessor())
                 .build();
