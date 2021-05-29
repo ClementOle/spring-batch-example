@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 import java.io.File;
 import java.util.Date;
 @ExtendWith(SpringExtension.class)
@@ -23,8 +24,10 @@ public class CommunesDBExportBatchIntegrationTest extends BatchTest {
     @Autowired
     @Qualifier("exportCommunes")
     private Job exportCommunes;
+
     @Autowired
     private CommuneRepository communeRepository;
+
     @BeforeEach
     @After
     public void setupAndTeardown(){
@@ -32,13 +35,13 @@ public class CommunesDBExportBatchIntegrationTest extends BatchTest {
         this.initializeJobLauncherTestUtils(exportCommunes);
     }
 
-
     @Test
     public void testSimpleJobOk() throws Exception {
         //Given
         JobParametersBuilder paramsBuilder = new JobParametersBuilder();
         paramsBuilder.addDate("date", new Date());
         paramsBuilder.addString("filePath", "target/test.txt");
+
         JobParameters jobParameters = paramsBuilder.toJobParameters();
         communeRepository.save(new Commune("01006", "Saint Ambleon", "01300", 45.7494989044, 5.59432017366));
         communeRepository.save(new Commune("01454", "Virignin", "01300", 45.7267387762, 5.71282330936));

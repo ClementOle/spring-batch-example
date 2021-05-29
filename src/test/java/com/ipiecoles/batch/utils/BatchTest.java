@@ -10,8 +10,10 @@ public class BatchTest {
 
     @Autowired
     protected JobLauncher jobLauncher;
+
     @Autowired
     protected JobRepository jobRepository;
+
     protected JobLauncherTestUtils jobLauncherTestUtils;
 
     protected void initializeJobLauncherTestUtils(Job job) {
